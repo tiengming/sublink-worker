@@ -5,10 +5,12 @@ on:
   repository_dispatch:
   push:
     branches:
-      - main
+      - v2net-xhttp
 
 jobs:
   deploy:
+    # 只从部署分支发布，防止 main 同步上游时误发布
+    if: github.ref_name == 'v2net-xhttp'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
