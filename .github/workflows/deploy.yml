@@ -1,14 +1,14 @@
 name: Deploy Worker
 
+# 部署已迁移到 v2net-xhttp 分支；main 仅用于同步上游
 on:
   workflow_dispatch:
   repository_dispatch:
-  push:
-    branches:
-      - main
 
 jobs:
   deploy:
+    # 部署分支是 v2net-xhttp；main 不发布
+    if: github.ref_name == 'v2net-xhttp'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
