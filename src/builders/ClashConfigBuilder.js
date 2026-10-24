@@ -209,6 +209,14 @@ export class ClashConfigBuilder extends BaseConfigBuilder {
                     'grpc-opts': proxy.transport?.type === 'grpc' ? {
                         'grpc-service-name': proxy.transport.service_name,
                     } : undefined,
+                    'xhttp-opts': proxy.transport?.type === 'xhttp' ? {
+                        path: proxy.transport.path || '/',
+                        ...(proxy.transport.headers?.host ? { host: proxy.transport.headers.host } : {}),
+                        mode: proxy.transport.mode || 'auto',
+                        ...(proxy.transport.x_padding_bytes ? { 'x-padding-bytes': proxy.transport.x_padding_bytes } : {}),
+                        ...(proxy.transport.sc_max_each_post_bytes ? { 'sc-max-each-post-bytes': proxy.transport.sc_max_each_post_bytes } : {}),
+                        ...(proxy.transport.sc_min_posts_interval_ms ? { 'sc-min-posts-interval-ms': proxy.transport.sc_min_posts_interval_ms } : {}),
+                    } : undefined,
                     tfo: proxy.tcp_fast_open,
                     'skip-cert-verify': !!proxy.tls?.insecure,
                     udp: getClashUdpValue(proxy),

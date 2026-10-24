@@ -309,15 +309,39 @@ export function createTlsConfig(params) {
 	return tls;
 }
 
+function parseExtraParams(raw) {
+	if (!raw) return {};
+	try {
+		return JSON.parse(raw);
+	} catch (error) {
+		return {};
+	}
+}
+
 export function createTransportConfig(params) {
-	return {
-		type: params.type,
+	const rawType = String(params.type || '').toLowerCase();
+	// Mihomo/Clash 统一使用 xhttp；Xray 的 splithttp 是同一个东西
+	const type = rawType === 'splithttp' ? 'xhttp' : rawType;
+	const extra = parseExtraParams(params.extra);
+
+	const transport = {
+		type,
 		path: params.path ?? undefined,
 		...(params.host && { 'headers': { 'host': params.host } }),
-		...(params.type === 'grpc' && {
+		...(type === 'grpc' && {
 			service_name: params.serviceName ?? undefined,
 		})
 	};
+
+	if (type === 'xhttp') {
+		transport.mode = params.mode || extra.mode || 'auto';
+		const padding = params.xpadding || params.xPaddingBytes || extra.xPaddingBytes;
+		if (padding) transport.x_padding_bytes = String(padding);
+		if (extra.scMaxEachPostBytes) transport.sc_max_each_post_bytes = extra.scMaxEachPostBytes;
+		if (extra.scMinPostsIntervalMs) transport.sc_min_posts_interval_ms = extra.scMinPostsIntervalMs;
+	}
+
+	return transport;
 }
 
 // Parse boolean value from various formats

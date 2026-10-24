@@ -94,7 +94,10 @@ export class SingboxConfigBuilder extends BaseConfigBuilder {
     }
 
     getProxies() {
-        return this.config.outbounds.filter(outbound => outbound?.server != undefined);
+        // sing-box 目前不支持 XHTTP，跳过这类节点，避免生成无法加载的配置
+        return this.config.outbounds.filter(
+            outbound => outbound?.server != undefined && outbound?.transport?.type !== 'xhttp'
+        );
     }
 
     getProxyName(proxy) {
@@ -588,6 +591,22 @@ export class SingboxConfigBuilder extends BaseConfigBuilder {
     }
 
     formatConfig() {
+        // sing-box 不支持 XHTTP：剔除这些节点，并从分组引用里移除，避免配置无法加载
+        const xhttpTags = new Set(
+            (this.config.outbounds || [])
+                .filter(outbound => outbound?.transport?.type === 'xhttp')
+                .map(outbound => outbound.tag)
+                .filter(Boolean)
+        );
+        if (xhttpTags.size > 0) {
+            this.config.outbounds = this.config.outbounds.filter(outbound => !xhttpTags.has(outbound?.tag));
+            for (const outbound of this.config.outbounds) {
+                if (Array.isArray(outbound.outbounds)) {
+                    outbound.outbounds = outbound.outbounds.filter(tag => !xhttpTags.has(tag));
+                }
+            }
+        }
+
         const rules = generateRules(this.selectedRules, this.customRules);
         const { site_rule_sets, ip_rule_sets } = generateRuleSets(this.selectedRules, this.customRules);
 
