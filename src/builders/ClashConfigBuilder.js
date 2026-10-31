@@ -40,6 +40,17 @@ function supportsMrsFormat(userAgent) {
     return true;
 }
 
+function isMihomoFamily(userAgent) {
+    if (!userAgent) return false;
+    const ua = String(userAgent).toLowerCase();
+    return ua.includes('mihomo') ||
+        ua.includes('clash.meta') ||
+        ua.includes('flclash') ||
+        ua.includes('clash-verge') ||
+        ua.includes('clashverge') ||
+        ua.includes('verge');
+}
+
 function getClashUdpValue(proxy, defaultEnabled = true) {
     if (typeof proxy?.udp !== 'undefined') {
         return proxy.udp;
@@ -699,10 +710,25 @@ export class ClashConfigBuilder extends BaseConfigBuilder {
         sanitizeClashProxyGroups(this.config);
         this.validateProxyGroups();
 
+        // Tailscale：只避免 tailscaled 的 UDP 被代理误判；不改变 NAT 打洞结果。
+        // AND 是 mihomo 扩展语法，Clash Premium/CFW/ClashX 解析不了，按 UA 区分输出。
+        const mihomo = isMihomoFamily(this.userAgent);
+        if (mihomo) {
+            // 进程名规则需要 find-process-mode: always；FlClash / Clash Verge Rev 支持
+            this.config['find-process-mode'] = 'always';
+        }
+        const tailscaleRules = mihomo
+            ? [
+                'AND,((NETWORK,UDP),(PROCESS-NAME,tailscaled)),DIRECT',
+                'AND,((NETWORK,UDP),(SRC-PORT,41641)),DIRECT',
+                'IP-CIDR,100.64.0.0/10,DIRECT,no-resolve',
+            ]
+            : [
+                // Clash Premium / CFW / ClashX 都能解析的通用兜底
+                'IP-CIDR,100.64.0.0/10,DIRECT,no-resolve',
+            ];
         this.config.rules = [
-            // Tailscale 直连打洞：只让 tailscaled 自己的 UDP（源端口 41641）走 DIRECT，
-            // DERP 回退（TCP 443）和其他流量仍走代理，避免打洞失败时 SSH 被代理链路拖断。
-            'AND,((NETWORK,UDP),(SRC-PORT,41641)),DIRECT',
+            ...tailscaleRules,
             ...ruleResults,
             `MATCH,${this.t('outboundNames.Fall Back')}`
         ];

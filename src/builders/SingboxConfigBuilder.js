@@ -694,6 +694,14 @@ export class SingboxConfigBuilder extends BaseConfigBuilder {
             { clash_mode: 'global', outbound: this.t('outboundNames.Node Select') }
         );
 
+        // Tailscale：只让 tailscaled 的 UDP 直连，避免被代理误判；DERP(TCP 443) 仍走代理。
+        // sing-box 的 source_port 必须是数组，写数字会解析失败。
+        this.config.route.rules.splice(1, 0,
+            { network: 'udp', process_name: ['tailscaled'], outbound: 'DIRECT' },
+            { network: 'udp', source_port: [41641], outbound: 'DIRECT' },
+            { ip_cidr: ['100.64.0.0/10'], outbound: 'DIRECT' }
+        );
+
         this.config.route.auto_detect_interface = true;
         this.config.route.final = this.t('outboundNames.Fall Back');
         // 如果启用了 Clash UI，添加配置
