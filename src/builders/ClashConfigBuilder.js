@@ -215,7 +215,12 @@ export class ClashConfigBuilder extends BaseConfigBuilder {
                         mode: proxy.transport.mode || 'auto',
                         ...(proxy.transport.x_padding_bytes ? { 'x-padding-bytes': proxy.transport.x_padding_bytes } : {}),
                         ...(proxy.transport.sc_max_each_post_bytes ? { 'sc-max-each-post-bytes': proxy.transport.sc_max_each_post_bytes } : {}),
-                        ...(proxy.transport.sc_min_posts_interval_ms ? { 'sc-min-posts-interval-ms': proxy.transport.sc_min_posts_interval_ms } : {}),
+                        // 复用底层连接，避免每个新连接都重新做 CF 的 TCP/TLS 握手
+                        'reuse-settings': {
+                            'max-concurrency': '16-32',
+                        },
+                        // 小请求不要等 30ms 才发下一个 POST
+                        'sc-min-posts-interval-ms': 1,
                     } : undefined,
                     tfo: proxy.tcp_fast_open,
                     'skip-cert-verify': !!proxy.tls?.insecure,
