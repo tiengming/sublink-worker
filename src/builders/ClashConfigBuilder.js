@@ -700,6 +700,9 @@ export class ClashConfigBuilder extends BaseConfigBuilder {
         this.validateProxyGroups();
 
         this.config.rules = [
+            // Tailscale 直连打洞：只让 tailscaled 自己的 UDP（源端口 41641）走 DIRECT，
+            // DERP 回退（TCP 443）和其他流量仍走代理，避免打洞失败时 SSH 被代理链路拖断。
+            'AND,((NETWORK,UDP),(SRC-PORT,41641)),DIRECT',
             ...ruleResults,
             `MATCH,${this.t('outboundNames.Fall Back')}`
         ];
